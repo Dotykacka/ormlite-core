@@ -14,6 +14,7 @@ import com.j256.ormlite.stmt.Where;
  */
 public class Not implements Clause, NeedsFutureClause {
 
+	private Raw raw = null;
 	private Comparison comparison = null;
 	private Exists exists = null;
 
@@ -41,6 +42,8 @@ public class Not implements Clause, NeedsFutureClause {
 			this.comparison = (Comparison) clause;
 		} else if (clause instanceof Exists) {
 			this.exists = (Exists) clause;
+		} else if (clause instanceof Raw) {
+			this.raw = (Raw) clause;
 		} else {
 			throw new IllegalArgumentException("NOT operation can only work with comparison SQL clauses, not " + clause);
 		}
@@ -49,13 +52,16 @@ public class Not implements Clause, NeedsFutureClause {
 	@Override
 	public void appendSql(DatabaseType databaseType, String tableName, StringBuilder sb,
 			List<ArgumentHolder> selectArgList) throws SQLException {
-		if (comparison == null && exists == null) {
+		if (comparison == null && exists == null && raw == null) {
 			throw new IllegalStateException("Clause has not been set in NOT operation");
 		}
 		// this generates: (NOT 'x' = 123 )
-		if (comparison == null) {
+		if (comparison == null && raw == null) {
 			sb.append("(NOT ");
 			exists.appendSql(databaseType, tableName, sb, selectArgList);
+		} else if(comparison == null) {
+			sb.append("(NOT ");
+			raw.appendSql(databaseType, tableName, sb, selectArgList);
 		} else {
 			sb.append("(NOT ");
 			if (tableName != null) {
@@ -72,8 +78,10 @@ public class Not implements Clause, NeedsFutureClause {
 
 	@Override
 	public String toString() {
-		if (comparison == null) {
+		if (comparison == null && raw == null) {
 			return "NOT without comparison";
+		} else if (comparison == null) {
+			return "NOT without raw";
 		} else {
 			return "NOT comparison " + comparison;
 		}

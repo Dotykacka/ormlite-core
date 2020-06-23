@@ -315,9 +315,32 @@ public class Where<T, ID> {
 	 * Add a LIKE clause so the column must mach the value using '%' patterns.
 	 */
 	public Where<T, ID> like(String columnName, Object value) throws SQLException {
-		addClause(new SimpleComparison(columnName, findColumnFieldType(columnName), value,
-				SimpleComparison.LIKE_OPERATION));
+		if (value instanceof String) {
+			raw('`' + columnName + '`' + " LIKE " + escapeSqlString((String) value) + " ESCAPE '\\'");
+		} else {
+			addClause(new SimpleComparison(columnName, findColumnFieldType(columnName), value,
+					SimpleComparison.LIKE_OPERATION));
+		}
 		return this;
+	}
+
+	private String escapeSqlString(String sqlString) {
+		StringBuilder sb = new StringBuilder();
+		sb.append('\'');
+		if (sqlString.indexOf('\'') != -1) {
+			int length = sqlString.length();
+			for (int i = 0; i < length; i++) {
+				char c = sqlString.charAt(i);
+				if (c == '\'') {
+					sb.append('\'');
+				}
+				sb.append(c);
+			}
+		} else {
+			sb.append(sqlString);
+		}
+		sb.append('\'');
+		return sb.toString();
 	}
 
 	/**
